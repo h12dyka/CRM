@@ -11,11 +11,9 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    // Getter untuk isAuthenticated (alternatif dari state)
     getIsAuthenticated: (state) => !!state.token,
-    
-    // Getter untuk current user
-    getCurrentUser: (state) => state.currentUser
+    getCurrentUser: (state) => state.currentUser,
+    isAdmin: (state) => state.currentUser?.role === 'admin'
   },
 
   actions: {

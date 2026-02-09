@@ -53,4 +53,9 @@ class User extends Authenticatable
     protected $attributes = [
         'is_active' => true,
     ];
+
+    public function activities()
+    {
+        return $this->hasMany(\App\Models\Activity::class);
+    }
 }

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 
 
@@ -40,5 +41,13 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activities/statistics', [ActivityController::class, 'statistics']);
     Route::apiResource('activities', ActivityController::class);
+});
+
+// Admin only
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::get('/activities', [AdminController::class, 'activities']);
+    Route::get('/statistics', [AdminController::class, 'statistics']);
+    Route::put('/users/{user}/toggle-status', [AdminController::class, 'toggleUserStatus']);
 });
 
