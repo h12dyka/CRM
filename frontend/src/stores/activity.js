@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from '@/plugins/axios'
+import api from '@/plugins/axios'
 
 export const useActivityStore = defineStore('activity', {
   state: () => ({
@@ -10,10 +10,10 @@ export const useActivityStore = defineStore('activity', {
       month: 0,
       followup_pending: 0,
       clients_visited: 0,
-      total_deal_value: 0,
+      total_deal_value: 0
     },
     loading: false,
-    currentFilter: 'all',
+    currentFilter: 'all'
   }),
 
   actions: {
@@ -22,10 +22,12 @@ export const useActivityStore = defineStore('activity', {
       this.currentFilter = filter
       
       try {
-        const params = filter !== 'all' ? { filter } : {}
-        const response = await axios.get('/api/activities', { params })
-        this.activities = response.data.data
-        return response.data
+        const response = await api.get('/activities', {
+          params: { filter }
+        })
+        
+        this.activities = response.data.data || []
+        return this.activities
       } catch (error) {
         console.error('Error fetching activities:', error)
         throw error
@@ -36,91 +38,92 @@ export const useActivityStore = defineStore('activity', {
 
     async fetchStatistics() {
       try {
-        const response = await axios.get('/api/statistics')
-        this.statistics = response.data
-        return response.data
+        const response = await api.get('/activities/statistics')
+        
+        this.statistics = response.data.data || {
+          today: 0,
+          week: 0,
+          month: 0,
+          followup_pending: 0,
+          clients_visited: 0,
+          total_deal_value: 0
+        }
+        
+        return this.statistics
       } catch (error) {
         console.error('Error fetching statistics:', error)
         throw error
       }
     },
 
-    async createActivity(activityData) {
-      this.loading = true
-      
+    async createActivity(formData) {
       try {
-        const formData = new FormData()
+        // Handle file upload dengan FormData
+        const payload = new FormData()
         
-        // Append all fields to FormData
-        Object.keys(activityData).forEach(key => {
-          if (key === 'attachments' && activityData[key]) {
-            // Handle file attachments
-            Array.from(activityData[key]).forEach((file, index) => {
-              formData.append(`attachments[${index}]`, file)
+        // Append semua field ke FormData
+        Object.keys(formData).forEach(key => {
+          if (key === 'attachments' && formData[key]) {
+            // Handle multiple files
+            Array.from(formData[key]).forEach((file, index) => {
+              payload.append(`attachments[${index}]`, file)
             })
-          } else if (activityData[key] !== null && activityData[key] !== undefined) {
-            formData.append(key, activityData[key])
+          } else if (formData[key] !== null && formData[key] !== undefined) {
+            payload.append(key, formData[key])
           }
         })
         
-        const response = await axios.post('/api/activities', formData, {
+        // Override content-type untuk multipart/form-data
+        const response = await api.post('/activities', payload, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         })
         
-        // Add new activity to the beginning of the list
-        this.activities.unshift(response.data.data)
+        // Refresh activities dan statistics setelah create
+        await Promise.all([
+          this.fetchActivities(this.currentFilter),
+          this.fetchStatistics()
+        ])
         
-        // Refresh statistics
-        await this.fetchStatistics()
-        
-        return response.data
+        return response.data.data
       } catch (error) {
         console.error('Error creating activity:', error)
         throw error
-      } finally {
-        this.loading = false
       }
     },
 
-    async updateActivity(id, activityData) {
-      this.loading = true
-      
+    async updateActivity(id, formData) {
       try {
-        const response = await axios.put(`/api/activities/${id}`, activityData)
+        const response = await api.put(`/activities/${id}`, formData)
         
-        // Update activity in the list
-        const index = this.activities.findIndex(a => a.id === id)
-        if (index !== -1) {
-          this.activities[index] = response.data.data
-        }
+        // Refresh activities dan statistics
+        await Promise.all([
+          this.fetchActivities(this.currentFilter),
+          this.fetchStatistics()
+        ])
         
-        return response.data
+        return response.data.data
       } catch (error) {
         console.error('Error updating activity:', error)
         throw error
-      } finally {
-        this.loading = false
       }
     },
 
     async deleteActivity(id) {
-      this.loading = true
-      
       try {
-        await axios.delete(`/api/activities/${id}`)
+        await api.delete(`/activities/${id}`)
         
-        // Remove activity from the list
-        this.activities = this.activities.filter(a => a.id !== id)
+        // Refresh activities dan statistics
+        await Promise.all([
+          this.fetchActivities(this.currentFilter),
+          this.fetchStatistics()
+        ])
         
-        // Refresh statistics
-        await this.fetchStatistics()
+        return true
       } catch (error) {
         console.error('Error deleting activity:', error)
         throw error
-      } finally {
-        this.loading = false
       }
     }
   }
