@@ -187,6 +187,6 @@ class ActivityController extends Controller
                 ->count(),
         ];
 
-        return response()->json($stats);
+        return response()->json(['data' => $stats]);
     }
 }

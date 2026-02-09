@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'role',
+        'is_active',
     ];
 
     /**
@@ -41,5 +44,18 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
     ];
+
+    /**
+     * Default value for is_active when creating new users.
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    public function activities()
+    {
+        return $this->hasMany(\App\Models\Activity::class);
+    }
 }
